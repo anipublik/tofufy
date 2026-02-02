@@ -1,0 +1,12 @@
+# Paths that tofufy will never touch.
+# Syntax: gitignore-style globs, relative to repo root.
+
+# Vendored modules
+vendor/**
+.terraform/**
+
+# Generated / third-party
+**/.terraform.lock.hcl
+
+# Examples you manage manually
+examples/**
