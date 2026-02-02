@@ -11,9 +11,12 @@ Changes:
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Match the resource type declaration
 _RESOURCE_TYPE_RE = re.compile(r'\bresource\s+"null_resource"')

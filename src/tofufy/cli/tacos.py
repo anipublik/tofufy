@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -19,11 +19,13 @@ def tacos_init(
     platform: str = typer.Option(
         ..., "--platform", help="atlantis | spacelift | env0 | scalr | digger"
     ),
-    repo_path: Path = typer.Option(Path("."), "--path", help="Repo root"),
-    out: Optional[Path] = typer.Option(None, "--out", help="Output path (default: repo root)"),
-    template_dir: Optional[Path] = typer.Option(
-        None, "--template-dir", help="Custom template directory"
-    ),
+    repo_path: Annotated[Path, typer.Option("--path", help="Repo root")] = Path("."),
+    out: Annotated[
+        Path | None, typer.Option("--out", help="Output path (default: repo root)")
+    ] = None,
+    template_dir: Annotated[
+        Path | None, typer.Option("--template-dir", help="Custom template directory")
+    ] = None,
     dry_run: bool = typer.Option(False, "--dry-run"),
 ) -> None:
     """Generate TACOS platform config files for a converted repo."""

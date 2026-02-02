@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-from typing import Optional
+from pathlib import Path  # noqa: TC003
 
 # Built-in templates keyed by platform name
 _TEMPLATES: dict[str, dict[str, str]] = {
@@ -95,7 +93,7 @@ class TACOSGenerator:
         platform: str,
         repo_path: Path,
         out_path: Path,
-        template_dir: Optional[Path] = None,
+        template_dir: Path | None = None,
     ) -> None:
         self.platform = platform
         self.repo_path = repo_path
@@ -113,14 +111,13 @@ class TACOSGenerator:
 
     def _render(self, template: str, workspaces: list[str]) -> str:
         try:
-            from jinja2 import Environment  # type: ignore[import-untyped]
+            from jinja2 import Environment
 
             env = Environment(trim_blocks=True, lstrip_blocks=True)
             tmpl = env.from_string(template)
             return tmpl.render(workspaces=workspaces)
         except ImportError:
             # Fallback: basic substitution without jinja2
-            ws_lines = "\n".join(f"  - {ws}" for ws in workspaces)
             return template.replace("{%- for ws in workspaces %}", "").replace(
                 "{%- endfor %}", ""
             )
@@ -128,7 +125,7 @@ class TACOSGenerator:
     def generate(self, dry_run: bool = False) -> list[Path]:
         templates = self._load_templates()
         workspaces = self._discover_workspaces()
-        written: list[Path] = []
+        written = []
 
         for rel_path, template in templates.items():
             content = self._render(template, workspaces)

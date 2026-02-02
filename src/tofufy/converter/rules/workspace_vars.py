@@ -11,9 +11,12 @@ usage to flag that workspace names should be verified post-migration.
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _TF_WORKSPACE_RE = re.compile(r"\bterraform\.workspace\b")
 
@@ -39,10 +42,10 @@ class WorkspaceVarsRule(Rule):
         if "TOFUFY: terraform.workspace" in content:
             return content  # already annotated
 
-        def _annotate_first(m: re.Match) -> str:  # type: ignore[type-arg]
+        def _annotate_first(m: re.Match[str]) -> str:
             indent = re.match(r"^([ \t]*)", m.group(1))
             ind = indent.group(1) if indent else ""
-            comment = "\n".join(ind + l for l in _COMMENT.splitlines()) + "\n"
+            comment = "\n".join(ind + line for line in _COMMENT.splitlines()) + "\n"
             return comment + m.group(0)
 
         return _FIRST_USAGE_RE.sub(_annotate_first, content, count=1)

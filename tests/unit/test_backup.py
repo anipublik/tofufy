@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import tarfile
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.backup import snapshot
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_snapshot_creates_archive(tmp_path: Path) -> None:

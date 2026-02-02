@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -12,7 +10,7 @@ app = typer.Typer(help="TFE state operations.")
 console = Console()
 
 
-def _require_token(token: Optional[str]) -> str:
+def _require_token(token: str | None) -> str:
     if not token:
         token = typer.prompt("TFE token", hide_input=True)
     return token
@@ -20,8 +18,8 @@ def _require_token(token: Optional[str]) -> str:
 
 @app.command("list")
 def state_list(
-    org: Optional[str] = typer.Option(None, "--org", help="TFE organization"),
-    token: Optional[str] = typer.Option(None, "--token", envvar="TFE_TOKEN"),
+    org: str | None = typer.Option(None, "--org", help="TFE organization"),
+    token: str | None = typer.Option(None, "--token", envvar="TFE_TOKEN"),
     tfe_url: str = typer.Option("https://app.terraform.io", "--tfe-url"),
 ) -> None:
     """List TFE organizations and workspaces."""
@@ -52,8 +50,8 @@ def state_list(
 @app.command("pull")
 def state_pull(
     org: str = typer.Option(..., "--org", help="TFE organization"),
-    workspace: Optional[str] = typer.Option(None, "--workspace", help="Single workspace name"),
-    token: Optional[str] = typer.Option(None, "--token", envvar="TFE_TOKEN"),
+    workspace: str | None = typer.Option(None, "--workspace", help="Single workspace name"),
+    token: str | None = typer.Option(None, "--token", envvar="TFE_TOKEN"),
     tfe_url: str = typer.Option("https://app.terraform.io", "--tfe-url"),
     out_dir: str = typer.Option("./tfe-state", "--out-dir"),
 ) -> None:
@@ -75,11 +73,11 @@ def state_pull(
 @app.command("migrate")
 def state_migrate(
     org: str = typer.Option(..., "--org"),
-    token: Optional[str] = typer.Option(None, "--token", envvar="TFE_TOKEN"),
+    token: str | None = typer.Option(None, "--token", envvar="TFE_TOKEN"),
     tfe_url: str = typer.Option("https://app.terraform.io", "--tfe-url"),
-    workspace: Optional[str] = typer.Option(None, "--workspace"),
+    workspace: str | None = typer.Option(None, "--workspace"),
     target_backend: str = typer.Option(..., "--target-backend", help="s3 | gcs | azurerm | local"),
-    backend_config: Optional[str] = typer.Option(
+    backend_config: str | None = typer.Option(
         None, "--backend-config", help="Path to backend config JSON/HCL"
     ),
 ) -> None:
@@ -109,9 +107,9 @@ def state_migrate(
 @app.command("rotate-keys")
 def rotate_keys(
     org: str = typer.Option(..., "--org"),
-    token: Optional[str] = typer.Option(None, "--token", envvar="TFE_TOKEN"),
+    token: str | None = typer.Option(None, "--token", envvar="TFE_TOKEN"),
     tfe_url: str = typer.Option("https://app.terraform.io", "--tfe-url"),
-    workspace: Optional[str] = typer.Option(None, "--workspace"),
+    workspace: str | None = typer.Option(None, "--workspace"),
 ) -> None:
     """Rotate state encryption keys post-migration."""
     import asyncio

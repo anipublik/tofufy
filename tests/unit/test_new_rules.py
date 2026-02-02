@@ -6,17 +6,17 @@ from pathlib import Path
 
 import pytest
 
-from tofufy.converter.rules.null_resource import NullResourceRule
-from tofufy.converter.rules.deprecated_interpolation import DeprecatedInterpolationRule
-from tofufy.converter.rules.deprecated_functions import DeprecatedFunctionsRule
-from tofufy.converter.rules.terragrunt import TerragruntRule
-from tofufy.converter.rules.tfe_resources import TFEResourcesRule
-from tofufy.converter.rules.import_block import ImportBlockRule
 from tofufy.converter.rules.backend_s3 import BackendS3Rule
+from tofufy.converter.rules.deprecated_functions import DeprecatedFunctionsRule
+from tofufy.converter.rules.deprecated_interpolation import DeprecatedInterpolationRule
+from tofufy.converter.rules.import_block import ImportBlockRule
+from tofufy.converter.rules.null_resource import NullResourceRule
 from tofufy.converter.rules.provider_version import ProviderVersionRule
 from tofufy.converter.rules.removed_block import RemovedBlockRule
-from tofufy.converter.rules.workspace_vars import WorkspaceVarsRule
 from tofufy.converter.rules.sensitive_output import SensitiveOutputRule
+from tofufy.converter.rules.terragrunt import TerragruntRule
+from tofufy.converter.rules.tfe_resources import TFEResourcesRule
+from tofufy.converter.rules.workspace_vars import WorkspaceVarsRule
 
 P = Path("main.tf")
 

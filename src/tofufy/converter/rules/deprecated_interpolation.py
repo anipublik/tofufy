@@ -14,9 +14,12 @@ Does NOT change mixed strings like "prefix-${var.foo}" or "${a}-${b}".
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Matches:  = "${<expr>}"  where <expr> has no nested interpolations
 # Capture group 1: leading whitespace + key + operator
@@ -43,7 +46,7 @@ _SOLO_INTERP_RE = re.compile(
 )
 
 
-def _replace(m: re.Match) -> str:  # type: ignore[type-arg]
+def _replace(m: re.Match[str]) -> str:
     return m.group(1) + m.group(2)
 
 

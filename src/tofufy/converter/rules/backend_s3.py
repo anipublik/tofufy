@@ -12,9 +12,12 @@ Changes:
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _S3_BACKEND_BLOCK_RE = re.compile(
     r"""
@@ -39,7 +42,7 @@ _VAR_INTERPOLATION_HINT = (
 )
 
 
-def _patch_s3_block(m: re.Match) -> str:  # type: ignore[type-arg]
+def _patch_s3_block(m: re.Match[str]) -> str:
     body = m.group(1)
     closing_indent = m.group(2)
     full = m.group(0)

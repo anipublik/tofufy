@@ -19,9 +19,12 @@ This rule adds advisory comments only; it never changes version numbers.
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Exact-version pin: version = "= 1.2.3" or version = "1.2.3" (no operator)
 _EXACT_PIN_RE = re.compile(
@@ -50,7 +53,7 @@ _PROVIDER_BLOCK_RE = re.compile(
 )
 
 
-def _flag_exact_pins(m: re.Match) -> str:  # type: ignore[type-arg]
+def _flag_exact_pins(m: re.Match[str]) -> str:
     # Don't double-annotate
     preceding = m.string[max(0, m.start() - 120) : m.start()]
     if "TOFUFY" in preceding:

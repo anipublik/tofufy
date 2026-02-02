@@ -13,9 +13,12 @@ inside `removed {}` blocks.
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Find: removed { ... lifecycle { destroy = <bool> } ... }
 _REMOVED_LIFECYCLE_RE = re.compile(
@@ -38,7 +41,6 @@ def _hoist_destroy(m: re.Match) -> str:  # type: ignore[type-arg]
     block_indent = m.group(1)
     prefix = m.group(2)
     lifecycle_indent = m.group(3)
-    destroy_indent = m.group(4)
     destroy_value = m.group(5)
     suffix = m.group(6)
     close_indent = m.group(7)

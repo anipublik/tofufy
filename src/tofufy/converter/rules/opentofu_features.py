@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # OpenTofu supports provider-defined functions - no terraform.functions{} shim needed.
 # Matches comment-delimited workaround blocks: # provider-defined functions workaround ... # end workaround
@@ -25,7 +28,7 @@ _TF_REQUIRED_VERSION_RE = re.compile(
 )
 
 
-def _bump_required_version(m: re.Match) -> str:  # type: ignore[type-arg]
+def _bump_required_version(m: re.Match[str]) -> str:
     """Ensure required_version allows OpenTofu 1.x (>= 1.6)."""
     prefix, op, ver, suffix = m.groups()
     parts = ver.split(".")

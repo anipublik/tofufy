@@ -10,9 +10,12 @@ This rule adds a TOFUFY warning comment above affected import blocks.
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Find import { ... } blocks where id contains ${ ... }
 # The body may contain } inside quoted strings (e.g. "${var.env}"), so we
@@ -41,7 +44,7 @@ _WARNING = (
 )
 
 
-def _check_and_annotate(m: re.Match) -> str:  # type: ignore[type-arg]
+def _check_and_annotate(m: re.Match[str]) -> str:
     indent = m.group(1)
     body = m.group(2)
 

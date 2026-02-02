@@ -12,9 +12,12 @@ it for manual review without modifying the resource itself.
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _TFE_RESOURCE_RE = re.compile(
     r"""
@@ -34,10 +37,9 @@ _ANNOTATION = (
 )
 
 
-def _annotate(m: re.Match) -> str:  # type: ignore[type-arg]
+def _annotate(m: re.Match[str]) -> str:
     indent = m.group(1)
     kind = m.group(2)
-    tfe_type = m.group(3)
     annotation = _ANNOTATION.format(kind=kind)
     # Indent each annotation line
     indented = "\n".join(indent + line for line in annotation.splitlines()) + "\n"

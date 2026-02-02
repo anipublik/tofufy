@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Any, cast
 
-import git as gitpython  # type: ignore[import-untyped]
+import git as gitpython
 
 PLATFORMS = {"github", "gitlab", "bitbucket"}
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class PRCreator:
@@ -23,7 +25,7 @@ class PRCreator:
         branch: str,
         title: str,
         draft: bool,
-        conversion_result: Optional[object],
+        conversion_result: object | None,
     ) -> str:
         repo = gitpython.Repo(self.repo_path)
         self._commit_and_push(repo, branch)
@@ -49,9 +51,9 @@ class PRCreator:
         branch: str,
         title: str,
         draft: bool,
-        result: Optional[object],
+        result: object | None,
     ) -> str:
-        from github import Github  # type: ignore[import-untyped]
+        from github import Github
 
         remote_url = repo.remote("origin").url
         slug = _parse_github_slug(remote_url)
@@ -91,7 +93,8 @@ class PRCreator:
                 },
             )
             r.raise_for_status()
-            return r.json()["web_url"]
+            data = r.json()
+            return str(data["web_url"])
 
     def _bitbucket_pr(self, repo: gitpython.Repo, branch: str, title: str) -> str:
         import httpx
@@ -111,10 +114,11 @@ class PRCreator:
                 },
             )
             r.raise_for_status()
-            return r.json()["links"]["html"]["href"]
+            data = r.json()
+            return str(data["links"]["html"]["href"])
 
 
-def _build_pr_body(result: Optional[object]) -> str:
+def _build_pr_body(result: object | None) -> str:
     lines = [
         "## OpenTofu Migration",
         "",
@@ -122,8 +126,9 @@ def _build_pr_body(result: Optional[object]) -> str:
         "",
         "### Changes",
     ]
-    if result and hasattr(result, "changes"):
-        for change in result.changes:  # type: ignore[union-attr]
+    changes = cast("Any", getattr(result, "changes", None))
+    if changes:
+        for change in changes:
             if change.changed:
                 lines.append(f"- `{change.path}` (rules: {', '.join(change.rule_hits)})")
     else:

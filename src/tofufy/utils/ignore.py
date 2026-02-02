@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def load_ignore_patterns(path: Path) -> list[str]:
@@ -10,4 +13,4 @@ def load_ignore_patterns(path: Path) -> list[str]:
     if not path.exists():
         return []
     lines = path.read_text(encoding="utf-8").splitlines()
-    return [l.strip() for l in lines if l.strip() and not l.strip().startswith("#")]
+    return [line.strip() for line in lines if line.strip() and not line.strip().startswith("#")]

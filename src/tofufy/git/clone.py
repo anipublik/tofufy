@@ -20,14 +20,21 @@ def resolve_source(source: str, verbose: bool = False) -> Path:
 
 
 def _clone(url: str, verbose: bool = False) -> Path:
-    import git  # type: ignore[import-untyped]
+    import git
 
     tmp = tempfile.mkdtemp(prefix="tofufy-")
     dest = Path(tmp) / "repo"
-    git.Repo.clone_from(url, dest, depth=1, progress=None if not verbose else _GitProgress())
+    progress = _GitProgress() if verbose else None
+    git.Repo.clone_from(url, dest, depth=1, progress=progress)
     return dest
 
 
 class _GitProgress:
-    def __call__(self, op_code: int, cur_count: int, max_count: int = 0, message: str = "") -> None:
+    def __call__(
+        self,
+        op_code: int,
+        cur_count: str | float,
+        max_count: str | float | None = None,
+        message: str = "",
+    ) -> None:
         print(f"  git: {message or cur_count}/{max_count}")

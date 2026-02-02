@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, cast
 
 import httpx
 
@@ -31,19 +30,21 @@ class TFEClient:
             "Content-Type": "application/vnd.api+json",
         }
 
-    def _get(self, path: str, params: Optional[dict] = None) -> dict:
+    def _get(self, path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
         with httpx.Client(base_url=self.base_url, headers=self._headers, timeout=30) as client:
             r = client.get(path, params=params)
             r.raise_for_status()
-            return r.json()
+            return cast("dict[str, Any]", r.json())
 
-    async def _aget(self, path: str, params: Optional[dict] = None) -> dict:
+    async def _aget(
+        self, path: str, params: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         async with httpx.AsyncClient(
             base_url=self.base_url, headers=self._headers, timeout=30
         ) as client:
             r = await client.get(path, params=params)
             r.raise_for_status()
-            return r.json()
+            return cast("dict[str, Any]", r.json())
 
     def list_organizations(self) -> list[Organization]:
         data = self._get("/api/v2/organizations")
@@ -67,7 +68,7 @@ class TFEClient:
             for w in data.get("data", [])
         ]
 
-    async def get_current_state_version(self, workspace_id: str) -> Optional[dict]:
+    async def get_current_state_version(self, workspace_id: str) -> dict[str, Any] | None:
         try:
             data = await self._aget(
                 f"/api/v2/workspaces/{workspace_id}/current-state-version"
@@ -78,7 +79,7 @@ class TFEClient:
                 return None
             raise
 
-    async def rotate_keys(self, org: str, workspace: Optional[str]) -> int:
+    async def rotate_keys(self, org: str, workspace: str | None) -> int:
         """Placeholder: key rotation via TFE API. Returns count of rotated workspaces."""
         # TFE does not expose a direct key-rotation API endpoint; this is typically
         # handled by re-encrypting state via the state push API after pulling.

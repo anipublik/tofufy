@@ -10,9 +10,12 @@ This rule is advisory only - it adds a comment, never modifies values.
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _SENSITIVE_KEYWORDS = re.compile(
     r"\b(password|secret|token|api_key|private_key|cert|credential|auth)\b",
@@ -37,11 +40,10 @@ _COMMENT = (
 )
 
 
-def _check_output(m: re.Match) -> str:  # type: ignore[type-arg]
+def _check_output(m: re.Match[str]) -> str:
     indent = m.group(1)
     name = m.group(2)
     body = m.group(3)
-    close_indent = m.group(4)
 
     looks_sensitive = _SENSITIVE_KEYWORDS.search(name) or _SENSITIVE_KEYWORDS.search(body)
     already_marked = _SENSITIVE_FLAG_RE.search(body)

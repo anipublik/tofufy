@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.utils.ignore import load_ignore_patterns
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_load_ignore_patterns(tmp_path: Path) -> None:

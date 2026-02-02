@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Sentinel structural patterns -> OPA Rego equivalents
 _REPLACEMENTS: list[tuple[re.Pattern, str]] = [  # type: ignore[type-arg]

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from tofufy.converter.engine import ConversionResult
@@ -30,11 +30,11 @@ class AIAssistant:
             "openrouter": "openrouter/auto",
         }
 
-    def refine(self, result: "ConversionResult") -> "ConversionResult":
-        import litellm  # type: ignore[import-untyped]
+    def refine(self, result: ConversionResult) -> ConversionResult:
+        import litellm
 
         model = self._model_map.get(self.provider, self.provider)
-        extra: dict = {}
+        extra: dict[str, Any] = {}
         if self.api_key:
             extra["api_key"] = self.api_key
 

@@ -5,8 +5,6 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-import pytest
-
 from tofufy.converter.engine import ConversionEngine
 
 FIXTURES = Path(__file__).parent.parent / "testdata" / "fixtures"

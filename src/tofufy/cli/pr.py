@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -14,8 +14,8 @@ console = Console()
 
 @app.command("create")
 def pr_create(
-    repo_path: Path = typer.Option(Path("."), "--path"),
-    token: Optional[str] = typer.Option(None, "--token", envvar="GITHUB_TOKEN"),
+    repo_path: Annotated[Path, typer.Option("--path")] = Path("."),
+    token: str | None = typer.Option(None, "--token", envvar="GITHUB_TOKEN"),
     platform: str = typer.Option("github", "--platform", help="github | gitlab | bitbucket"),
     branch: str = typer.Option("tofufy/opentofu-migration", "--branch"),
     title: str = typer.Option("chore: migrate to OpenTofu", "--title"),
@@ -36,7 +36,7 @@ def pr_create(
 def _do_create(
     repo_path: Path,
     result: object,
-    token: Optional[str],
+    token: str | None,
     platform: str,
     branch: str = "tofufy/opentofu-migration",
     title: str = "chore: migrate to OpenTofu",

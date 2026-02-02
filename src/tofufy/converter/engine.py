@@ -5,15 +5,12 @@ from __future__ import annotations
 import difflib
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 
-from rich.console import Console
 from rich.syntax import Syntax
 
 from tofufy.converter.hcl_parser import ParsedFile, find_tf_files, parse_file
 from tofufy.converter.rules.backend_s3 import BackendS3Rule
-from tofufy.converter.rules.base import Rule
 from tofufy.converter.rules.cloud import CloudBlockRule
 from tofufy.converter.rules.deprecated_functions import DeprecatedFunctionsRule
 from tofufy.converter.rules.deprecated_interpolation import DeprecatedInterpolationRule
@@ -28,6 +25,13 @@ from tofufy.converter.rules.sentinel_to_opa import SentinelToOpaRule
 from tofufy.converter.rules.terragrunt import TerragruntRule
 from tofufy.converter.rules.tfe_resources import TFEResourcesRule
 from tofufy.converter.rules.workspace_vars import WorkspaceVarsRule
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from rich.console import Console
+
+    from tofufy.converter.rules.base import Rule
 
 
 class RuleCategory(str, Enum):
@@ -203,11 +207,11 @@ class ConversionEngine:
         repo_path: Path,
         ignore_patterns: list[str],
         ai_enabled: bool = False,
-        llm_provider: Optional[str] = None,
-        api_key: Optional[str] = None,
+        llm_provider: str | None = None,
+        api_key: str | None = None,
         verbose: bool = False,
         config: Any = None,
-        categories: Optional[list[RuleCategory]] = None,
+        categories: list[RuleCategory] | None = None,
     ) -> None:
         self.repo_path = repo_path
         self.ignore_patterns = ignore_patterns

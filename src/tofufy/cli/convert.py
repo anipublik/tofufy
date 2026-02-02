@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -26,16 +26,16 @@ def convert(
     dry_run: bool = typer.Option(False, "--dry-run", help="Show changes without writing"),
     backup: bool = typer.Option(False, "--backup", help="Snapshot repo before any writes"),
     verbose: bool = typer.Option(False, "--verbose", help="Full debug output"),
-    config: Optional[Path] = typer.Option(None, "--config", help="YAML config file"),
+    config: Annotated[Path | None, typer.Option("--config", help="YAML config file")] = None,
     output: str = typer.Option("markdown", "--output", help="json | markdown | html | patch"),
     ai: bool = typer.Option(False, "--ai", help="Enable AI-assisted transformation"),
-    llm_provider: Optional[str] = typer.Option(
+    llm_provider: str | None = typer.Option(
         None, "--llm-provider", help="anthropic | openai | kimi | openrouter"
     ),
-    api_key: Optional[str] = typer.Option(None, "--api-key", envvar="TOFUFY_API_KEY"),
+    api_key: str | None = typer.Option(None, "--api-key", envvar="TOFUFY_API_KEY"),
     github_pr: bool = typer.Option(False, "--github-pr", help="Open a GitHub PR after conversion"),
-    token: Optional[str] = typer.Option(None, "--token", envvar="GITHUB_TOKEN"),
-    platform: Optional[str] = typer.Option(
+    token: str | None = typer.Option(None, "--token", envvar="GITHUB_TOKEN"),
+    platform: str | None = typer.Option(
         None, "--platform", help="github | gitlab | bitbucket"
     ),
 ) -> None:
@@ -103,7 +103,7 @@ def convert(
 
 
 def _create_pr(
-    repo_path: Path, result: object, token: Optional[str], platform: str
+    repo_path: Path, result: object, token: str | None, platform: str
 ) -> None:
     from tofufy.cli.pr import _do_create
 

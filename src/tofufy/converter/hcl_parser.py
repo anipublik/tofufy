@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import fnmatch
 from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass
@@ -12,7 +15,7 @@ class ParsedFile:
     path: Path
     content: str
 
-    def with_content(self, new_content: str) -> "ParsedFile":
+    def with_content(self, new_content: str) -> ParsedFile:
         return ParsedFile(path=self.path, content=new_content)
 
 

@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import json
-from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import httpx
 
 from tofufy.state.client import TFEClient
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class StatePuller:
@@ -19,7 +21,7 @@ class StatePuller:
         self._token = token
         self._base_url = base_url
 
-    async def pull(self, org: str, workspace: Optional[str]) -> None:
+    async def pull(self, org: str, workspace: str | None) -> None:
         self.out_dir.mkdir(parents=True, exist_ok=True)
         workspaces = self.client.list_workspaces(org)
 

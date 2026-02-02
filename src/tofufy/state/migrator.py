@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import cast
 
 from tofufy.state.client import TFEClient
 from tofufy.state.puller import StatePuller
@@ -27,7 +26,7 @@ class StateMigrator:
         base_url: str,
         token: str,
         target_backend: str,
-        backend_config_path: Optional[Path],
+        backend_config_path: Path | None,
     ) -> None:
         if target_backend not in SUPPORTED_BACKENDS:
             raise ValueError(
@@ -40,7 +39,7 @@ class StateMigrator:
         self._base_url = base_url
         self._token = token
 
-    async def migrate(self, org: str, workspace: Optional[str]) -> MigrationReport:
+    async def migrate(self, org: str, workspace: str | None) -> MigrationReport:
         report = MigrationReport()
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -78,9 +77,9 @@ class StateMigrator:
 
     async def _push_s3(self, state_file: Path) -> None:
         try:
-            import boto3  # type: ignore[import-untyped]
-        except ImportError:
-            raise RuntimeError("boto3 required for S3 backend. pip install boto3")
+            import boto3
+        except ImportError as err:
+            raise RuntimeError("boto3 required for S3 backend. pip install boto3") from err
 
         cfg = self._load_backend_config()
         bucket = cfg.get("bucket", "")
@@ -92,12 +91,12 @@ class StateMigrator:
 
     async def _push_gcs(self, state_file: Path) -> None:
         try:
-            from google.cloud import storage  # type: ignore[import-untyped]
-        except ImportError:
+            from google.cloud import storage
+        except ImportError as err:
             raise RuntimeError(
                 "google-cloud-storage required for GCS backend. "
                 "pip install google-cloud-storage"
-            )
+            ) from err
         cfg = self._load_backend_config()
         bucket_name = cfg.get("bucket", "")
         prefix = cfg.get("prefix", "tofufy")
@@ -109,14 +108,14 @@ class StateMigrator:
     async def _push_azurerm(self, state_file: Path) -> None:
         raise NotImplementedError("AzureRM backend push not yet implemented.")
 
-    def _load_backend_config(self) -> dict:
+    def _load_backend_config(self) -> dict[str, str]:
         if not self.backend_config_path or not self.backend_config_path.exists():
             return {}
         text = self.backend_config_path.read_text()
         if self.backend_config_path.suffix == ".json":
-            return json.loads(text)
+            return cast("dict[str, str]", json.loads(text))
         # Basic HCL key=value parsing
-        cfg: dict = {}
+        cfg: dict[str, str] = {}
         for line in text.splitlines():
             line = line.strip()
             if "=" in line and not line.startswith("#"):

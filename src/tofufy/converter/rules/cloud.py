@@ -8,9 +8,12 @@ cannot cross closing braces. This version uses a brace-counting walk instead.
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _CLOUD_KEYWORD_RE = re.compile(r"(^[ \t]*)cloud\s*\{", re.MULTILINE)
 

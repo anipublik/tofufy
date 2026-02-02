@@ -10,9 +10,12 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tofufy.converter.rules.base import Rule
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # encode_tfvars / decode_tfvars - removed in OpenTofu
 _ENCODE_TFVARS_RE = re.compile(r"\bencode_tfvars\s*\(")
@@ -54,18 +57,18 @@ _TEMPLATE_FILE_RESOURCE_REF_RE = re.compile(
 )
 
 
-def _list_replace(m: re.Match) -> str:  # type: ignore[type-arg]
+def _list_replace(m: re.Match[str]) -> str:
     args = m.group(1)
     return f"[{args}]"
 
 
-def _map_replace(m: re.Match) -> str:  # type: ignore[type-arg]
+def _map_replace(m: re.Match[str]) -> str:
     key, value = m.group(1), m.group(2).strip()
     return "{ " + f'{key} = {value}' + " }"
 
 
-def _template_file_flag(m: re.Match) -> str:  # type: ignore[type-arg]
-    indent, name = m.group(1), m.group(2)
+def _template_file_flag(m: re.Match[str]) -> str:
+    indent = m.group(1)
     todo = (
         f'{indent}# TOFUFY: Replace this data "template_file" block with the '
         f'templatefile() function.\n'
