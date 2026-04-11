@@ -25,7 +25,7 @@ classifiers = [
     "Topic :: System :: Systems Administration",
 ]
 dependencies = [
-    "typer[all]>=0.12",
+    "typer[all]>=0.24.1",
     "rich>=13",
     "python-hcl2>=4",
     "pydantic>=2",
