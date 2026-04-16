@@ -77,4 +77,10 @@ jobs:
         run: mypy src/tofufy
 
       - name: Security audit (pip-audit)
-        run: pip-audit --strict --skip-editable
+        # Compile tofufy's declared dependencies (incl. dev extras) into a
+        # flat requirements file and audit those. This avoids noise from the
+        # runner's pre-installed system packages and from auditing tofufy
+        # itself (not on PyPI).
+        run: |
+          uv pip compile pyproject.toml --extra dev --extra all --quiet -o /tmp/tofufy-reqs.txt
+          pip-audit -r /tmp/tofufy-reqs.txt --strict
