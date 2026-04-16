@@ -58,11 +58,14 @@ def test_display_markdown_renders(tmp_path: Path):
     engine = ConversionEngine(repo_path=tmp_path, ignore_patterns=[])
     result = engine.run()
 
-    # A non-TTY console just records output; the important thing is no crash
-    console = Console(record=True, width=120)
+    # Wide console prevents Rich from wrapping long tmp paths (macOS tmp
+    # dirs under /private/var/folders/... can exceed 120 chars and would
+    # otherwise split "main.tf" across lines).
+    console = Console(record=True, width=500)
     result.display(console, fmt="markdown")
     out = console.export_text()
     assert "main.tf" in out
+    assert "registry-rewrite" in out
     assert "Summary" in out
 
 
@@ -71,7 +74,7 @@ def test_display_patch_includes_diff(tmp_path: Path):
     engine = ConversionEngine(repo_path=tmp_path, ignore_patterns=[])
     result = engine.run()
 
-    console = Console(record=True, width=120)
+    console = Console(record=True, width=500)
     result.display(console, fmt="patch")
     out = console.export_text()
     assert "---" in out and "+++" in out
