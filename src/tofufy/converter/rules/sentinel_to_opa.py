@@ -15,12 +15,12 @@ _REPLACEMENTS: list[tuple[re.Pattern, str]] = [  # type: ignore[type-arg]
     # import "tfplan" -> import future.keywords; import input as tfplan
     (
         re.compile(r'^import\s+"tfplan(?:/v2)?"', re.MULTILINE),
-        'import future.keywords\nimport input as tfplan',
+        "import future.keywords\nimport input as tfplan",
     ),
     # import "tfconfig" -> import input as tfconfig
     (
         re.compile(r'^import\s+"tfconfig(?:/v2)?"', re.MULTILINE),
-        'import future.keywords\nimport input as tfconfig',
+        "import future.keywords\nimport input as tfconfig",
     ),
     # main = rule { ... }  ->  default allow = false\nallow { ... }
     (

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import tempfile
 from dataclasses import dataclass, field
@@ -30,8 +31,7 @@ class StateMigrator:
     ) -> None:
         if target_backend not in SUPPORTED_BACKENDS:
             raise ValueError(
-                f"Unsupported backend: {target_backend}. "
-                f"Supported: {', '.join(SUPPORTED_BACKENDS)}"
+                f"Unsupported backend: {target_backend}. Supported: {', '.join(SUPPORTED_BACKENDS)}"
             )
         self.client = TFEClient(base_url=base_url, token=token)
         self.target_backend = target_backend
@@ -44,9 +44,7 @@ class StateMigrator:
 
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            puller = StatePuller(
-                base_url=self._base_url, token=self._token, out_dir=tmp_path
-            )
+            puller = StatePuller(base_url=self._base_url, token=self._token, out_dir=tmp_path)
             await puller.pull(org=org, workspace=workspace)
 
             for state_file in tmp_path.glob("*.tfstate"):
@@ -79,31 +77,39 @@ class StateMigrator:
         try:
             import boto3
         except ImportError as err:
-            raise RuntimeError("boto3 required for S3 backend. pip install boto3") from err
+            raise RuntimeError('boto3 required for S3 backend. pip install "tofufy[s3]"') from err
 
         cfg = self._load_backend_config()
         bucket = cfg.get("bucket", "")
         key = cfg.get("key_prefix", "tofufy") + f"/{state_file.name}"
         region = cfg.get("region", "us-east-1")
 
-        s3 = boto3.client("s3", region_name=region)
-        s3.upload_file(str(state_file), bucket, key)
+        # boto3 is sync; run it off the event loop so concurrent uploads
+        # actually run concurrently instead of serialising the loop.
+        def _upload() -> None:
+            s3 = boto3.client("s3", region_name=region)
+            s3.upload_file(str(state_file), bucket, key)
+
+        await asyncio.to_thread(_upload)
 
     async def _push_gcs(self, state_file: Path) -> None:
         try:
             from google.cloud import storage
         except ImportError as err:
             raise RuntimeError(
-                "google-cloud-storage required for GCS backend. "
-                "pip install google-cloud-storage"
+                'google-cloud-storage required for GCS backend. pip install "tofufy[gcs]"'
             ) from err
         cfg = self._load_backend_config()
         bucket_name = cfg.get("bucket", "")
         prefix = cfg.get("prefix", "tofufy")
-        client = storage.Client()
-        bucket = client.bucket(bucket_name)
-        blob = bucket.blob(f"{prefix}/{state_file.name}")
-        blob.upload_from_filename(str(state_file))
+
+        def _upload() -> None:
+            client = storage.Client()
+            bucket = client.bucket(bucket_name)
+            blob = bucket.blob(f"{prefix}/{state_file.name}")
+            blob.upload_from_filename(str(state_file))
+
+        await asyncio.to_thread(_upload)
 
     async def _push_azurerm(self, state_file: Path) -> None:
         raise NotImplementedError("AzureRM backend push not yet implemented.")

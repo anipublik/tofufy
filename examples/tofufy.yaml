@@ -1,0 +1,19 @@
+# Example tofufy configuration file.
+# Pass to the CLI with:  tofufy convert ./my-infra --config examples/tofufy.yaml
+
+# TFE / Terraform Cloud API endpoint (only needed for state commands).
+tfe_url: https://app.terraform.io
+
+# Default target backend for `tofufy state migrate`.
+# One of: s3 | gcs | azurerm | local
+default_backend: s3
+
+# Pre-select a TACOS platform so `tofufy tacos init` can skip --platform.
+# Leave unset (null) to be prompted each time.
+# One of: atlantis | spacelift | env0 | scalr | digger
+tacos_platform: null
+
+# Additional user-defined rule module paths, each a dotted Python import that
+# exposes a class inheriting tofufy.converter.rules.base.Rule. Leave empty
+# unless you've written custom rules.
+extra_rules: []

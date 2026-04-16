@@ -34,10 +34,7 @@ _OUTPUT_BLOCK_RE = re.compile(
 
 _SENSITIVE_FLAG_RE = re.compile(r"\bsensitive\s*=\s*true\b")
 
-_COMMENT = (
-    "# TOFUFY: This output may expose sensitive data. "
-    "Consider adding: sensitive = true\n"
-)
+_COMMENT = "# TOFUFY: This output may expose sensitive data. Consider adding: sensitive = true\n"
 
 
 def _check_output(m: re.Match[str]) -> str:

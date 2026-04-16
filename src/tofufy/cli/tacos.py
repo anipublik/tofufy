@@ -30,10 +30,7 @@ def tacos_init(
 ) -> None:
     """Generate TACOS platform config files for a converted repo."""
     if platform not in PLATFORMS:
-        console.print(
-            f"[red]Unknown platform:[/red] {platform}. "
-            f"Supported: {', '.join(PLATFORMS)}"
-        )
+        console.print(f"[red]Unknown platform:[/red] {platform}. Supported: {', '.join(PLATFORMS)}")
         raise typer.Exit(1)
 
     from tofufy.tacos.generator import TACOSGenerator

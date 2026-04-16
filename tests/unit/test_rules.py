@@ -37,7 +37,7 @@ REGISTRY_CASES = [
 ]
 
 
-@pytest.mark.parametrize("inp,expected", REGISTRY_CASES)
+@pytest.mark.parametrize(("inp", "expected"), REGISTRY_CASES)
 def test_registry_rule(inp: str, expected: str) -> None:
     rule = RegistryRewriteRule()
     assert rule.apply(inp, Path("main.tf")) == expected
@@ -156,7 +156,7 @@ OTF_CASES = [
 ]
 
 
-@pytest.mark.parametrize("inp,expected", OTF_CASES)
+@pytest.mark.parametrize(("inp", "expected"), OTF_CASES)
 def test_opentofu_features_version(inp: str, expected: str) -> None:
     rule = OpenTofuFeaturesRule()
     assert rule.apply(inp, Path("main.tf")) == expected
@@ -165,6 +165,7 @@ def test_opentofu_features_version(inp: str, expected: str) -> None:
 # ---------------------------------------------------------------------------
 # SentinelToOpaRule
 # ---------------------------------------------------------------------------
+
 
 def test_sentinel_to_opa_adds_package() -> None:
     rule = SentinelToOpaRule()

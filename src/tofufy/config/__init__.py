@@ -21,7 +21,7 @@ def load_config(path: Path | None) -> TofufyConfig:
     if path is None or not path.exists():
         return TofufyConfig()
 
-    import yaml  # type: ignore[import-untyped]
+    import yaml
 
     raw: dict[str, Any] = yaml.safe_load(path.read_text()) or {}
     return TofufyConfig(**raw)

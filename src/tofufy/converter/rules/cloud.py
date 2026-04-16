@@ -73,16 +73,24 @@ class CloudBlockRule(Rule):
         if "cloud" not in content:
             return content
 
-        m = _CLOUD_KEYWORD_RE.search(content)
-        if not m:
-            return content
+        # Rewrite every cloud{} block. We scan forward because each replacement
+        # changes offsets, and we only want to re-match past the most-recent
+        # substitution so we never loop forever on malformed input.
+        search_from = 0
+        while True:
+            m = _CLOUD_KEYWORD_RE.search(content, search_from)
+            if not m:
+                return content
 
-        indent = m.group(1)
-        open_brace_pos = content.index("{", m.start())
-        block_end = _find_block_end(content, open_brace_pos)
-        cloud_body = content[open_brace_pos + 1 : block_end - 1]
+            indent = m.group(1)
+            try:
+                open_brace_pos = content.index("{", m.start())
+            except ValueError:
+                return content
+            block_end = _find_block_end(content, open_brace_pos)
+            cloud_body = content[open_brace_pos + 1 : block_end - 1]
 
-        backend_block = _build_backend_block(cloud_body, indent)
-
-        # Replace from the start of the indented "cloud" keyword to end of block
-        return content[: m.start()] + backend_block + content[block_end:]
+            backend_block = _build_backend_block(cloud_body, indent)
+            content = content[: m.start()] + backend_block + content[block_end:]
+            # Continue past the replacement to find any further cloud{} blocks.
+            search_from = m.start() + len(backend_block)
