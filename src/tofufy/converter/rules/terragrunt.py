@@ -52,7 +52,7 @@ class TerragruntRule(Rule):
 
         # Replace explicit terraform binary setting
         if _BINARY_SET_RE.search(content):
-            content = _BINARY_SET_RE.sub(r'\1tofu\2', content)
+            content = _BINARY_SET_RE.sub(r"\1tofu\2", content)
             return content
 
         # If there's a terraform {} block without terraform_binary, inject it

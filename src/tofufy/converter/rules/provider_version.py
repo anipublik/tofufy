@@ -42,16 +42,6 @@ _EXACT_PIN_COMMENT = (
     "# to avoid being blocked on a specific Terraform-era release.\n"
 )
 
-# Provider block without a source attribute
-_PROVIDER_BLOCK_RE = re.compile(
-    r"""
-    ^([ \t]*)(\w+)\s*=\s*\{    # name = {
-    ([^}]*)                     # body
-    \}                          # }
-    """,
-    re.MULTILINE | re.VERBOSE | re.DOTALL,
-)
-
 
 def _flag_exact_pins(m: re.Match[str]) -> str:
     # Don't double-annotate

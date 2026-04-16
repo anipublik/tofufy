@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import contextlib
 import difflib
+import json
+import os
+import tempfile
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path as _Path
 from typing import TYPE_CHECKING, Any
 
 from rich.syntax import Syntax
@@ -37,9 +42,30 @@ if TYPE_CHECKING:
 class RuleCategory(str, Enum):
     """Rule execution priority tier."""
 
-    BREAKING = "breaking"      # Will break if not applied
-    IMPORTANT = "important"    # Behavioral differences / deprecation warnings
-    ADVISORY = "advisory"      # Comments and hints only; no code changes
+    BREAKING = "breaking"  # Will break if not applied
+    IMPORTANT = "important"  # Behavioral differences / deprecation warnings
+    ADVISORY = "advisory"  # Comments and hints only; no code changes
+
+
+# Human-readable one-liners for each rule, used by `tofufy rules`
+# and the PR-body summary.
+RULE_DESCRIPTIONS: dict[str, str] = {
+    "cloud-block-to-backend": 'Rewrite cloud{} to backend "remote" {}',
+    "registry-rewrite": "Swap registry.terraform.io → registry.opentofu.org",
+    "null-resource-to-terraform-data": "Migrate null_resource → terraform_data",
+    "opentofu-features": "Bump required_version and enable OpenTofu features",
+    "removed-block-lifecycle": "Hoist destroy out of lifecycle{} in removed{}",
+    "deprecated-interpolation": 'Simplify "${expr}" wrappers',
+    "deprecated-functions": "Replace list()/map()/*_tfvars with modern syntax",
+    "terragrunt-binary": 'Set terraform_binary = "tofu" in terragrunt.hcl',
+    "backend-s3-cleanup": "Clean legacy S3 backend flags; hint use_lockfile",
+    "sentinel-to-opa": "Scaffold Sentinel → OPA Rego mapping",
+    "tfe-resource-annotation": "Flag tfe_* resources for review",
+    "import-block-interpolation": "Warn on interpolated import{} ids",
+    "provider-version-pin": "Flag exact-version provider pins",
+    "workspace-name-annotation": "Annotate terraform.workspace usage",
+    "sensitive-output": "Flag outputs that look sensitive but aren't marked",
+}
 
 
 @dataclass
@@ -57,13 +83,11 @@ ALL_RULES: list[CategorizedRule] = [
     CategorizedRule(NullResourceRule(), RuleCategory.BREAKING),
     CategorizedRule(OpenTofuFeaturesRule(), RuleCategory.BREAKING),
     CategorizedRule(RemovedBlockRule(), RuleCategory.BREAKING),
-
     # --- IMPORTANT: deprecated constructs that should be updated ---
     CategorizedRule(DeprecatedInterpolationRule(), RuleCategory.IMPORTANT),
     CategorizedRule(DeprecatedFunctionsRule(), RuleCategory.IMPORTANT),
     CategorizedRule(TerragruntRule(), RuleCategory.IMPORTANT),
     CategorizedRule(BackendS3Rule(), RuleCategory.IMPORTANT),
-
     # --- ADVISORY: annotations and hints for manual review ---
     CategorizedRule(SentinelToOpaRule(), RuleCategory.ADVISORY),
     CategorizedRule(TFEResourcesRule(), RuleCategory.ADVISORY),
@@ -88,24 +112,15 @@ class FileChange:
 
     @property
     def breaking_changes(self) -> list[str]:
-        return [
-            r for r in self.rule_hits
-            if self.rule_categories.get(r) == RuleCategory.BREAKING
-        ]
+        return [r for r in self.rule_hits if self.rule_categories.get(r) == RuleCategory.BREAKING]
 
     @property
     def important_changes(self) -> list[str]:
-        return [
-            r for r in self.rule_hits
-            if self.rule_categories.get(r) == RuleCategory.IMPORTANT
-        ]
+        return [r for r in self.rule_hits if self.rule_categories.get(r) == RuleCategory.IMPORTANT]
 
     @property
     def advisory_changes(self) -> list[str]:
-        return [
-            r for r in self.rule_hits
-            if self.rule_categories.get(r) == RuleCategory.ADVISORY
-        ]
+        return [r for r in self.rule_hits if self.rule_categories.get(r) == RuleCategory.ADVISORY]
 
     def diff(self) -> str:
         return "".join(
@@ -116,6 +131,16 @@ class FileChange:
                 tofile=f"b/{self.path}",
             )
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "path": str(self.path),
+            "changed": self.changed,
+            "rules": self.rule_hits,
+            "breaking": self.breaking_changes,
+            "important": self.important_changes,
+            "advisory": self.advisory_changes,
+        }
 
 
 @dataclass
@@ -128,11 +153,37 @@ class ConversionResult:
 
     @property
     def breaking_count(self) -> int:
-        return sum(len(c.breaking_changes) > 0 for c in self.changes if c.changed)
+        return sum(1 for c in self.changes if c.changed and c.breaking_changes)
+
+    @property
+    def important_count(self) -> int:
+        return sum(1 for c in self.changes if c.changed and c.important_changes)
+
+    @property
+    def advisory_count(self) -> int:
+        return sum(1 for c in self.changes if c.changed and c.advisory_changes)
 
     def display(self, console: Console, fmt: str = "markdown", dry_run: bool = False) -> None:
-        label = "[dim](dry-run)[/dim] " if dry_run else ""
+        if fmt == "json":
+            console.print_json(self.to_json())
+            return
+        if fmt == "patch":
+            self._display_patch(console, dry_run)
+            return
+        # markdown / html / default
+        self._display_summary(console, dry_run, show_diff=False)
 
+    def _display_patch(self, console: Console, dry_run: bool) -> None:
+        label = "[dim](dry-run)[/dim] " if dry_run else ""
+        for change in self.changes:
+            if not change.changed:
+                continue
+            console.print(f"\n{label}[bold cyan]{change.path}[/bold cyan]")
+            console.print(Syntax(change.diff(), "diff", theme="monokai"))
+        self._print_summary_line(console)
+
+    def _display_summary(self, console: Console, dry_run: bool, show_diff: bool) -> None:
+        label = "[dim](dry-run)[/dim] " if dry_run else ""
         for change in self.changes:
             if not change.changed:
                 continue
@@ -147,32 +198,31 @@ class ConversionResult:
                     f"  [yellow]important:[/yellow] {', '.join(change.important_changes)}"
                 )
             if change.advisory_changes:
-                console.print(
-                    f"  [dim]advisory:[/dim] {', '.join(change.advisory_changes)}"
-                )
+                console.print(f"  [dim]advisory:[/dim] {', '.join(change.advisory_changes)}")
+            if show_diff:
+                console.print(Syntax(change.diff(), "diff", theme="monokai"))
 
-            if fmt == "patch":
-                syntax = Syntax(change.diff(), "diff", theme="monokai")
-                console.print(syntax)
+        self._print_summary_line(console)
 
+    def _print_summary_line(self, console: Console) -> None:
         console.print(
-            f"\n[bold]Summary:[/bold] {self.files_changed} file(s) changed, "
-            f"{self.breaking_count} with breaking rule hits."
+            f"\n[bold]Summary:[/bold] {self.files_changed} file(s) changed "
+            f"([red]{self.breaking_count} breaking[/red], "
+            f"[yellow]{self.important_count} important[/yellow], "
+            f"[dim]{self.advisory_count} advisory[/dim])."
         )
 
     def print_checklist(self, console: Console, dry_run: bool = False) -> None:
         """Print the next-steps checklist after a conversion."""
         if dry_run:
-            console.print("\n[dim]Dry run - no files written. Re-run without --dry-run to apply.[/dim]")
+            console.print(
+                "\n[dim]Dry run - no files written. Re-run without --dry-run to apply.[/dim]"
+            )
             return
 
-        has_tfe = any(
-            "tfe-resource-annotation" in c.rule_hits
-            for c in self.changes if c.changed
-        )
+        has_tfe = any("tfe-resource-annotation" in c.rule_hits for c in self.changes if c.changed)
         has_workspace = any(
-            "workspace-name-annotation" in c.rule_hits
-            for c in self.changes if c.changed
+            "workspace-name-annotation" in c.rule_hits for c in self.changes if c.changed
         )
 
         console.print("\n[bold]Next steps:[/bold]")
@@ -182,23 +232,64 @@ class ConversionResult:
             "-platform=linux_amd64 -platform=darwin_arm64 -platform=windows_amd64[/cyan]"
         )
         console.print("  3. [cyan]tofu plan[/cyan]  (run against your existing TFE backend)")
-        console.print("  4. [cyan]tofufy state migrate --org <org> --token $TFE_TOKEN --target-backend s3[/cyan]")
+        console.print(
+            "  4. [cyan]tofufy state migrate --org <org> --token "
+            "$TFE_TOKEN --target-backend s3[/cyan]"
+        )
         if has_tfe:
             console.print(
-                "\n  [yellow]tfe_* resources found - review TOFUFY annotations before applying.[/yellow]"
+                "\n  [yellow]tfe_* resources found - "
+                "review TOFUFY annotations before applying.[/yellow]"
             )
         if has_workspace:
             console.print(
-                "\n  [yellow]terraform.workspace used - verify workspace names after migration.[/yellow]"
+                "\n  [yellow]terraform.workspace used - "
+                "verify workspace names after migration.[/yellow]"
             )
 
     def write(self) -> None:
+        """Atomically write all changed files to disk.
+
+        Each file is written to a sibling temp file and renamed in place,
+        which avoids leaving a half-written .tf file behind if the process
+        is killed mid-write.
+        """
         for change in self.changes:
-            if change.changed:
-                change.path.write_text(change.transformed, encoding="utf-8")
+            if not change.changed:
+                continue
+            _atomic_write(change.path, change.transformed)
 
     def as_patch(self) -> str:
         return "\n".join(c.diff() for c in self.changes if c.changed)
+
+    def to_json(self) -> str:
+        return json.dumps(
+            {
+                "files_changed": self.files_changed,
+                "breaking": self.breaking_count,
+                "important": self.important_count,
+                "advisory": self.advisory_count,
+                "changes": [c.to_dict() for c in self.changes if c.changed],
+            },
+            indent=2,
+        )
+
+
+def _atomic_write(path: Path, content: str) -> None:
+    """Write content to path via a tmp file + rename within the same directory."""
+    parent = path.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tofufy-tmp", dir=parent)
+    tmp_path = _Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content)
+        tmp_path.replace(path)
+    except BaseException:
+        # Best-effort cleanup; leave path untouched on failure.
+        with contextlib.suppress(FileNotFoundError):
+            tmp_path.unlink()
+        raise
 
 
 class ConversionEngine:
@@ -249,8 +340,11 @@ class ConversionEngine:
         for cr in self.categorized_rules:
             new_content = cr.rule.apply(content, parsed.path)
             if new_content != content:
-                hits.append(cr.rule.name)
-                hit_categories[cr.rule.name] = cr.category
+                if cr.rule.name not in hit_categories:
+                    # First hit wins: a rule can only belong to one category, so
+                    # re-hitting the same rule should not clobber the record.
+                    hits.append(cr.rule.name)
+                    hit_categories[cr.rule.name] = cr.category
                 content = new_content
 
         return FileChange(

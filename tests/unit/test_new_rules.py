@@ -25,6 +25,7 @@ P = Path("main.tf")
 # NullResourceRule
 # ---------------------------------------------------------------------------
 
+
 class TestNullResourceRule:
     rule = NullResourceRule()
 
@@ -55,9 +56,9 @@ class TestNullResourceRule:
 
     def test_removes_null_from_required_providers(self):
         inp = (
-            'terraform {\n  required_providers {\n'
+            "terraform {\n  required_providers {\n"
             '    null = {\n      source = "hashicorp/null"\n    }\n'
-            '  }\n}\n'
+            "  }\n}\n"
             'resource "null_resource" "x" {}\n'
         )
         out = self.rule.apply(inp, P)
@@ -73,24 +74,33 @@ class TestNullResourceRule:
 # DeprecatedInterpolationRule
 # ---------------------------------------------------------------------------
 
+
 class TestDeprecatedInterpolationRule:
     rule = DeprecatedInterpolationRule()
 
-    @pytest.mark.parametrize("inp,expected", [
-        ('name = "${var.foo}"', "name = var.foo"),
-        ('value = "${local.bar}"', "value = local.bar"),
-        ('source = "${module.vpc.id}"', "source = module.vpc.id"),
-        ('arn = "${data.aws_caller_identity.current.arn}"',
-         "arn = data.aws_caller_identity.current.arn"),
-    ])
+    @pytest.mark.parametrize(
+        ("inp", "expected"),
+        [
+            ('name = "${var.foo}"', "name = var.foo"),
+            ('value = "${local.bar}"', "value = local.bar"),
+            ('source = "${module.vpc.id}"', "source = module.vpc.id"),
+            (
+                'arn = "${data.aws_caller_identity.current.arn}"',
+                "arn = data.aws_caller_identity.current.arn",
+            ),
+        ],
+    )
     def test_simplifies_solo_interpolation(self, inp, expected):
         assert self.rule.apply(inp, P) == expected
 
-    @pytest.mark.parametrize("unchanged", [
-        'name = "prefix-${var.foo}"',        # has literal prefix
-        'name = "${var.a}-${var.b}"',         # two interpolations
-        'name = "literal"',                   # no interpolation
-    ])
+    @pytest.mark.parametrize(
+        "unchanged",
+        [
+            'name = "prefix-${var.foo}"',  # has literal prefix
+            'name = "${var.a}-${var.b}"',  # two interpolations
+            'name = "literal"',  # no interpolation
+        ],
+    )
     def test_leaves_complex_strings_alone(self, unchanged):
         assert self.rule.apply(unchanged, P) == unchanged
 
@@ -99,15 +109,16 @@ class TestDeprecatedInterpolationRule:
 # DeprecatedFunctionsRule
 # ---------------------------------------------------------------------------
 
+
 class TestDeprecatedFunctionsRule:
     rule = DeprecatedFunctionsRule()
 
     def test_encode_tfvars(self):
-        inp = 'x = encode_tfvars(var.config)'
+        inp = "x = encode_tfvars(var.config)"
         assert "jsonencode(" in self.rule.apply(inp, P)
 
     def test_decode_tfvars(self):
-        inp = 'x = decode_tfvars(var.blob)'
+        inp = "x = decode_tfvars(var.blob)"
         assert "jsondecode(" in self.rule.apply(inp, P)
 
     def test_list_function(self):
@@ -127,13 +138,14 @@ class TestDeprecatedFunctionsRule:
         assert 'data "template_file"' in out  # block still present
 
     def test_noop_when_no_deprecated(self):
-        content = 'x = jsonencode(var.config)\n'
+        content = "x = jsonencode(var.config)\n"
         assert self.rule.apply(content, P) == content
 
 
 # ---------------------------------------------------------------------------
 # TerragruntRule
 # ---------------------------------------------------------------------------
+
 
 class TestTerragruntRule:
     rule = TerragruntRule()
@@ -161,6 +173,7 @@ class TestTerragruntRule:
 # ---------------------------------------------------------------------------
 # TFEResourcesRule
 # ---------------------------------------------------------------------------
+
 
 class TestTFEResourcesRule:
     rule = TFEResourcesRule()
@@ -191,6 +204,7 @@ class TestTFEResourcesRule:
 # ImportBlockRule
 # ---------------------------------------------------------------------------
 
+
 class TestImportBlockRule:
     rule = ImportBlockRule()
 
@@ -213,16 +227,12 @@ class TestImportBlockRule:
 # BackendS3Rule
 # ---------------------------------------------------------------------------
 
+
 class TestBackendS3Rule:
     rule = BackendS3Rule()
 
     def test_removes_skip_s3_checksum(self):
-        inp = (
-            'backend "s3" {\n'
-            '  bucket            = "my-bucket"\n'
-            '  skip_s3_checksum  = true\n'
-            '}\n'
-        )
+        inp = 'backend "s3" {\n  bucket            = "my-bucket"\n  skip_s3_checksum  = true\n}\n'
         out = self.rule.apply(inp, P)
         assert "skip_s3_checksum" not in out
         assert "my-bucket" in out
@@ -246,12 +256,13 @@ class TestBackendS3Rule:
 # ProviderVersionRule
 # ---------------------------------------------------------------------------
 
+
 class TestProviderVersionRule:
     rule = ProviderVersionRule()
 
     def test_flags_exact_pin(self):
         inp = (
-            'terraform {\n  required_providers {\n'
+            "terraform {\n  required_providers {\n"
             '    aws = {\n      source = "hashicorp/aws"\n'
             '      version = "5.12.0"\n    }\n  }\n}\n'
         )
@@ -260,7 +271,7 @@ class TestProviderVersionRule:
 
     def test_noop_on_range_constraint(self):
         inp = (
-            'terraform {\n  required_providers {\n'
+            "terraform {\n  required_providers {\n"
             '    aws = {\n      source = "hashicorp/aws"\n'
             '      version = "~> 5.0"\n    }\n  }\n}\n'
         )
@@ -275,18 +286,12 @@ class TestProviderVersionRule:
 # RemovedBlockRule
 # ---------------------------------------------------------------------------
 
+
 class TestRemovedBlockRule:
     rule = RemovedBlockRule()
 
     def test_hoists_destroy_from_lifecycle(self):
-        inp = (
-            "removed {\n"
-            "  from = aws_instance.old\n"
-            "  lifecycle {\n"
-            "    destroy = false\n"
-            "  }\n"
-            "}\n"
-        )
+        inp = "removed {\n  from = aws_instance.old\n  lifecycle {\n    destroy = false\n  }\n}\n"
         out = self.rule.apply(inp, P)
         assert "lifecycle" not in out
         assert "destroy = false" in out
@@ -300,29 +305,31 @@ class TestRemovedBlockRule:
 # WorkspaceVarsRule
 # ---------------------------------------------------------------------------
 
+
 class TestWorkspaceVarsRule:
     rule = WorkspaceVarsRule()
 
     def test_annotates_first_usage(self):
-        inp = 'env = terraform.workspace\n'
+        inp = "env = terraform.workspace\n"
         out = self.rule.apply(inp, P)
         assert "TOFUFY" in out
         assert "terraform.workspace" in out
 
     def test_idempotent(self):
-        inp = 'env = terraform.workspace\n'
+        inp = "env = terraform.workspace\n"
         once = self.rule.apply(inp, P)
         twice = self.rule.apply(once, P)
         assert once == twice
 
     def test_noop_when_no_workspace_ref(self):
-        content = 'x = var.env\n'
+        content = "x = var.env\n"
         assert self.rule.apply(content, P) == content
 
 
 # ---------------------------------------------------------------------------
 # SensitiveOutputRule
 # ---------------------------------------------------------------------------
+
 
 class TestSensitiveOutputRule:
     rule = SensitiveOutputRule()
@@ -333,12 +340,7 @@ class TestSensitiveOutputRule:
         assert "TOFUFY" in out
 
     def test_no_flag_when_already_marked(self):
-        inp = (
-            'output "db_password" {\n'
-            '  value     = aws_db.x.password\n'
-            '  sensitive = true\n'
-            '}\n'
-        )
+        inp = 'output "db_password" {\n  value     = aws_db.x.password\n  sensitive = true\n}\n'
         out = self.rule.apply(inp, P)
         assert "TOFUFY" not in out
 

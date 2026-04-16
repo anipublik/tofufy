@@ -1,10 +1,10 @@
 """Rule: replace deprecated Terraform built-in functions.
 
-  list(a, b, c)        ->  [a, b, c]
-  map("k", v)          ->  { k = v }  (single-pair only; complex maps flagged)
-  template_file data   ->  templatefile() function (annotate with TODO)
-  encode_tfvars(x)     ->  jsonencode(x)
-  decode_tfvars(x)     ->  jsondecode(x)
+list(a, b, c)        ->  [a, b, c]
+map("k", v)          ->  { k = v }  (single-pair only; complex maps flagged)
+template_file data   ->  templatefile() function (annotate with TODO)
+encode_tfvars(x)     ->  jsonencode(x)
+decode_tfvars(x)     ->  jsondecode(x)
 """
 
 from __future__ import annotations
@@ -52,9 +52,7 @@ _TEMPLATE_FILE_DATA_RE = re.compile(
     re.MULTILINE | re.VERBOSE,
 )
 
-_TEMPLATE_FILE_RESOURCE_REF_RE = re.compile(
-    r'\bdata\.template_file\.(\w+)\.rendered\b'
-)
+_TEMPLATE_FILE_RESOURCE_REF_RE = re.compile(r"\bdata\.template_file\.(\w+)\.rendered\b")
 
 
 def _list_replace(m: re.Match[str]) -> str:
@@ -64,16 +62,16 @@ def _list_replace(m: re.Match[str]) -> str:
 
 def _map_replace(m: re.Match[str]) -> str:
     key, value = m.group(1), m.group(2).strip()
-    return "{ " + f'{key} = {value}' + " }"
+    return "{ " + f"{key} = {value}" + " }"
 
 
 def _template_file_flag(m: re.Match[str]) -> str:
     indent = m.group(1)
     todo = (
         f'{indent}# TOFUFY: Replace this data "template_file" block with the '
-        f'templatefile() function.\n'
+        f"templatefile() function.\n"
         f'{indent}# Example: templatefile("${{path.module}}/tmpl.tftpl", var.vars)\n'
-        f'{indent}# Then remove the null provider and this data source entirely.\n'
+        f"{indent}# Then remove the null provider and this data source entirely.\n"
     )
     return todo + m.group(0)
 

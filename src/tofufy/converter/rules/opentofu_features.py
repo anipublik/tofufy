@@ -30,11 +30,11 @@ _TF_REQUIRED_VERSION_RE = re.compile(
 
 def _bump_required_version(m: re.Match[str]) -> str:
     """Ensure required_version allows OpenTofu 1.x (>= 1.6)."""
-    prefix, op, ver, suffix = m.groups()
+    prefix, _op, ver, suffix = m.groups()
     parts = ver.split(".")
     major = int(parts[0]) if parts else 1
     if major < 1 or (major == 1 and len(parts) > 1 and int(parts[1]) < 6):
-        return f'{prefix}>= 1.6{suffix}'
+        return f"{prefix}>= 1.6{suffix}"
     return m.group(0)
 
 

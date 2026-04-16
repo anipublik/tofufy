@@ -118,9 +118,7 @@ class TACOSGenerator:
             return tmpl.render(workspaces=workspaces)
         except ImportError:
             # Fallback: basic substitution without jinja2
-            return template.replace("{%- for ws in workspaces %}", "").replace(
-                "{%- endfor %}", ""
-            )
+            return template.replace("{%- for ws in workspaces %}", "").replace("{%- endfor %}", "")
 
     def generate(self, dry_run: bool = False) -> list[Path]:
         templates = self._load_templates()
@@ -142,9 +140,5 @@ class TACOSGenerator:
     def _load_templates(self) -> dict[str, str]:
         # User custom templates override built-ins
         if self.template_dir and self.template_dir.exists():
-            return {
-                f.name: f.read_text()
-                for f in self.template_dir.iterdir()
-                if f.is_file()
-            }
+            return {f.name: f.read_text() for f in self.template_dir.iterdir() if f.is_file()}
         return _TEMPLATES.get(self.platform, {})

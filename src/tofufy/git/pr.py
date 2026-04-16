@@ -32,10 +32,9 @@ class PRCreator:
 
         if self.platform == "github":
             return self._github_pr(repo, branch, title, draft, conversion_result)
-        elif self.platform == "gitlab":
+        if self.platform == "gitlab":
             return self._gitlab_mr(repo, branch, title, draft)
-        else:
-            return self._bitbucket_pr(repo, branch, title)
+        return self._bitbucket_pr(repo, branch, title)
 
     def _commit_and_push(self, repo: gitpython.Repo, branch: str) -> None:
         if repo.is_dirty(untracked_files=True):
@@ -71,9 +70,7 @@ class PRCreator:
         )
         return pr.html_url
 
-    def _gitlab_mr(
-        self, repo: gitpython.Repo, branch: str, title: str, draft: bool
-    ) -> str:
+    def _gitlab_mr(self, repo: gitpython.Repo, branch: str, title: str, draft: bool) -> str:
         import httpx
 
         remote_url = repo.remote("origin").url
@@ -119,25 +116,65 @@ class PRCreator:
 
 
 def _build_pr_body(result: object | None) -> str:
+    from tofufy import __version__
+
     lines = [
         "## OpenTofu Migration",
         "",
-        "This PR was generated automatically by [tofufy](https://github.com/anipublik/tofufy).",
+        f"Generated automatically by [tofufy](https://github.com/anipublik/tofufy) v{__version__}.",
         "",
-        "### Changes",
     ]
     changes = cast("Any", getattr(result, "changes", None))
-    if changes:
-        for change in changes:
-            if change.changed:
-                lines.append(f"- `{change.path}` (rules: {', '.join(change.rule_hits)})")
-    else:
-        lines.append("- See diff for full details.")
+    if not changes:
+        lines.append("See the diff for full details.")
+        return "\n".join(lines)
+
+    changed = [c for c in changes if c.changed]
+    if not changed:
+        lines.append("No files changed.")
+        return "\n".join(lines)
+
+    breaking_files = [c for c in changed if c.breaking_changes]
+    important_files = [c for c in changed if c.important_changes]
+    advisory_files = [c for c in changed if c.advisory_changes]
+
+    lines.append(
+        f"**Summary:** {len(changed)} file(s) changed "
+        f"({len(breaking_files)} breaking, "
+        f"{len(important_files)} important, "
+        f"{len(advisory_files)} advisory)."
+    )
+    lines.append("")
+
+    def _section(title: str, files: list[Any], attr: str) -> None:
+        if not files:
+            return
+        lines.append(f"### {title}")
+        for c in files:
+            rules = ", ".join(getattr(c, attr))
+            lines.append(f"- `{c.path}` — {rules}")
+        lines.append("")
+
+    _section("Breaking changes", breaking_files, "breaking_changes")
+    _section("Important updates", important_files, "important_changes")
+    _section("Advisory annotations", advisory_files, "advisory_changes")
+
+    lines.append("### Next steps")
+    lines.extend(
+        [
+            "1. `tofu init -upgrade`",
+            "2. `tofu providers lock -platform=linux_amd64 "
+            "-platform=darwin_arm64 -platform=windows_amd64`",
+            "3. `tofu plan` against the existing backend",
+            "4. Migrate state with `tofufy state migrate ...`",
+        ]
+    )
     return "\n".join(lines)
 
 
 def _parse_github_slug(url: str) -> str:
     import re
+
     m = re.search(r"github\.com[:/](.+?)(?:\.git)?$", url)
     if not m:
         raise ValueError(f"Cannot parse GitHub slug from: {url}")
@@ -146,6 +183,7 @@ def _parse_github_slug(url: str) -> str:
 
 def _parse_gitlab_slug(url: str) -> str:
     import re
+
     m = re.search(r"gitlab\.com[:/](.+?)(?:\.git)?$", url)
     if not m:
         raise ValueError(f"Cannot parse GitLab slug from: {url}")
@@ -154,6 +192,7 @@ def _parse_gitlab_slug(url: str) -> str:
 
 def _parse_bitbucket_slug(url: str) -> tuple[str, str]:
     import re
+
     m = re.search(r"bitbucket\.org[:/]([^/]+)/([^/]+?)(?:\.git)?$", url)
     if not m:
         raise ValueError(f"Cannot parse Bitbucket slug from: {url}")

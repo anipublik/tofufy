@@ -36,9 +36,7 @@ class TFEClient:
             r.raise_for_status()
             return cast("dict[str, Any]", r.json())
 
-    async def _aget(
-        self, path: str, params: dict[str, str] | None = None
-    ) -> dict[str, Any]:
+    async def _aget(self, path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
         async with httpx.AsyncClient(
             base_url=self.base_url, headers=self._headers, timeout=30
         ) as client:
@@ -70,9 +68,7 @@ class TFEClient:
 
     async def get_current_state_version(self, workspace_id: str) -> dict[str, Any] | None:
         try:
-            data = await self._aget(
-                f"/api/v2/workspaces/{workspace_id}/current-state-version"
-            )
+            data = await self._aget(f"/api/v2/workspaces/{workspace_id}/current-state-version")
             return data.get("data")
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
