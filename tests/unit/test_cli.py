@@ -73,7 +73,9 @@ def test_convert_writes_with_yes_flag(tmp_path: Path):
     result = runner.invoke(app, ["convert", str(tmp_path), "--yes"])
     assert result.exit_code == 0, result.output
     content = (tmp_path / "main.tf").read_text()
-    assert "registry.opentofu.org" in content
+    # Exact-match the rewritten line; this is a plain file-content check,
+    # not URL validation (avoids false positives from URL-substring lints).
+    assert content.strip() == 'source = "registry.opentofu.org/hashicorp/aws"'
 
 
 def test_convert_nonexistent_path():
