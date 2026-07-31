@@ -16,6 +16,7 @@ from rich.syntax import Syntax
 
 from tofufy.converter.hcl_parser import ParsedFile, find_tf_files, parse_file
 from tofufy.converter.rules.backend_s3 import BackendS3Rule
+from tofufy.converter.rules.cdktf_json import CdktfJsonRule
 from tofufy.converter.rules.cloud import CloudBlockRule
 from tofufy.converter.rules.deprecated_functions import DeprecatedFunctionsRule
 from tofufy.converter.rules.deprecated_interpolation import DeprecatedInterpolationRule
@@ -51,6 +52,7 @@ class RuleCategory(str, Enum):
 # and the PR-body summary.
 RULE_DESCRIPTIONS: dict[str, str] = {
     "cloud-block-to-backend": 'Rewrite cloud{} to backend "remote" {}',
+    "cdktf-json-terraform-block": "Convert CDKTF .tf.json for OpenTofu (version, cloud block)",
     "registry-rewrite": "Swap registry.terraform.io → registry.opentofu.org",
     "null-resource-to-terraform-data": "Migrate null_resource → terraform_data",
     "opentofu-features": "Bump required_version and enable OpenTofu features",
@@ -79,6 +81,7 @@ class CategorizedRule:
 ALL_RULES: list[CategorizedRule] = [
     # --- BREAKING: must fix for OpenTofu to work ---
     CategorizedRule(CloudBlockRule(), RuleCategory.BREAKING),
+    CategorizedRule(CdktfJsonRule(), RuleCategory.BREAKING),
     CategorizedRule(RegistryRewriteRule(), RuleCategory.BREAKING),
     CategorizedRule(NullResourceRule(), RuleCategory.BREAKING),
     CategorizedRule(OpenTofuFeaturesRule(), RuleCategory.BREAKING),
@@ -224,6 +227,7 @@ class ConversionResult:
         has_workspace = any(
             "workspace-name-annotation" in c.rule_hits for c in self.changes if c.changed
         )
+        has_cdktf = any(c.path.name.endswith(".tf.json") for c in self.changes if c.changed)
 
         console.print("\n[bold]Next steps:[/bold]")
         console.print("  1. [cyan]tofu init -upgrade[/cyan]")
@@ -245,6 +249,12 @@ class ConversionResult:
             console.print(
                 "\n  [yellow]terraform.workspace used - "
                 "verify workspace names after migration.[/yellow]"
+            )
+        if has_cdktf:
+            console.print(
+                "\n  [yellow]CDKTF synthesized files converted - "
+                "`cdktf synth` will overwrite cdktf.out; commit the converted "
+                "output or migrate stacks off CDKTF.[/yellow]"
             )
 
     def write(self) -> None:
@@ -338,6 +348,10 @@ class ConversionEngine:
         hit_categories: dict[str, RuleCategory] = {}
 
         for cr in self.categorized_rules:
+            # HCL-syntax rules would corrupt JSON-syntax config; only rules
+            # that explicitly support JSON may run on .tf.json files.
+            if parsed.is_json and not cr.rule.supports_json:
+                continue
             new_content = cr.rule.apply(content, parsed.path)
             if new_content != content:
                 if cr.rule.name not in hit_categories:

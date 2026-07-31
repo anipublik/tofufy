@@ -15,6 +15,11 @@ class ParsedFile:
     path: Path
     content: str
 
+    @property
+    def is_json(self) -> bool:
+        """True for JSON-syntax config (e.g. CDKTF-synthesized cdk.tf.json)."""
+        return self.path.name.endswith(".tf.json")
+
     def with_content(self, new_content: str) -> ParsedFile:
         return ParsedFile(path=self.path, content=new_content)
 
@@ -33,7 +38,7 @@ def find_tf_files(repo_path: Path, ignore_patterns: list[str]) -> list[Path]:
     Terragrunt files (terragrunt.hcl, root.hcl) are included so the
     terraform_binary rule can update them.
     """
-    globs = ["*.tf", "*.tofu", "*.tfvars", "terragrunt.hcl", "root.hcl"]
+    globs = ["*.tf", "*.tofu", "*.tfvars", "*.tf.json", "terragrunt.hcl", "root.hcl"]
     seen: set[Path] = set()
     results: list[Path] = []
 
