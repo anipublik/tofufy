@@ -15,6 +15,8 @@ _REGISTRY_RE = re.compile(r"registry\.terraform\.io", re.IGNORECASE)
 
 class RegistryRewriteRule(Rule):
     name = "registry-rewrite"
+    # Pure string substitution - safe on JSON-syntax config too.
+    supports_json = True
 
     def apply(self, content: str, path: Path) -> str:
         return _REGISTRY_RE.sub("registry.opentofu.org", content)

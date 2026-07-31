@@ -60,6 +60,12 @@ def convert_command(
         repo_path = resolve_source(source, verbose=verbose)
         progress.update(task, description=f"Source: [cyan]{repo_path}[/cyan]")
 
+        if (repo_path / "cdktf.json").exists():
+            console.print(
+                "[cyan]CDKTF project detected[/cyan] - converting synthesized "
+                "*.tf.json in place (output stays JSON)."
+            )
+
         if backup and not dry_run:
             progress.update(task, description="Creating backup snapshot...")
             snap = snapshot(repo_path)

@@ -12,6 +12,10 @@ if TYPE_CHECKING:
 class Rule(ABC):
     """A single deterministic transformation rule."""
 
+    # HCL-syntax rules assume braces/equals and must not run on .tf.json files.
+    # JSON-aware rules opt in by setting this to True.
+    supports_json: bool = False
+
     @property
     @abstractmethod
     def name(self) -> str: ...
